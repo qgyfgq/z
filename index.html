@@ -25,13 +25,38 @@
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
+            padding: 18px 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
         }
         
-        .header h1 {
-            font-size: 28px;
-            font-weight: bold;
+        .header .title h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .header .title p {
+            margin: 0;
+            font-size: 13px;
+            opacity: 0.95;
+        }
+        
+        .header .meta {
+            text-align: right;
+            min-width: 160px;
+        }
+        .header .meta .meta-main {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+        }
+        .header .meta .meta-sub {
+            margin-top: 4px;
+            font-size: 13px;
+            opacity: 0.95;
         }
         
         .container {
@@ -355,8 +380,14 @@
 </head>
 <body>
     <div class="header">
-        <h1>📊 期权分析工具</h1>
-        <p style="margin-top: 8px; font-size: 13px; opacity: 0.9;">完整的期权行情分析、组合构建和风险评估平台</p>
+        <div class="title">
+            <h1>📊 期权分析工具</h1>
+            <p>完整的期权行情分析、组合构建和风险评估平台</p>
+        </div>
+        <div class="meta">
+            <div class="meta-main">量化投资</div>
+            <div class="meta-sub">学号:23020168</div>
+        </div>
     </div>
     
     <div class="container">
