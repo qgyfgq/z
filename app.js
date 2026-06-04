@@ -15,34 +15,46 @@ let predictionChart = null;
 
 // ==================== 数据加载模块 ====================
 
-async function loadData() {
-    const fileInput = document.getElementById('fileInput');
-    const files = fileInput.files;
+async function loadDataFromFiles() {
+    const optionInfoFile = document.getElementById('optionInfoFile').files[0];
+    const optionPriceFile = document.getElementById('optionPriceFile').files[0];
+    const etfPriceFile = document.getElementById('etfPriceFile').files[0];
     
-    if (files.length === 0) {
-        alert('请先选择文件');
+    // 检查文件是否已选择
+    if (!optionInfoFile && !optionPriceFile && !etfPriceFile) {
+        updateDataStatus('❌ 请先选择文件', true);
         return;
     }
     
     try {
-        for (let file of files) {
-            const text = await file.text();
-            const result = Papa.parse(text);
-            
-            if (file.name.includes('option_info')) {
-                data.optionInfo = result.data;
-            } else if (file.name.includes('option_price')) {
-                data.optionPrice = result.data;
-            } else if (file.name.includes('etf_price')) {
-                data.etfPrice = result.data;
-            }
+        updateDataStatus('⏳ 正在加载文件...', false);
+        
+        if (optionInfoFile) {
+            const text = await optionInfoFile.text();
+            data.optionInfo = Papa.parse(text).data;
+        }
+        
+        if (optionPriceFile) {
+            const text = await optionPriceFile.text();
+            data.optionPrice = Papa.parse(text).data;
+        }
+        
+        if (etfPriceFile) {
+            const text = await etfPriceFile.text();
+            data.etfPrice = Papa.parse(text).data;
         }
         
         initializeUI();
-        updateDataStatus();
+        updateDataStatus('✅ 数据加载成功！');
     } catch (error) {
-        alert('数据加载失败: ' + error.message);
+        updateDataStatus('❌ 数据加载失败: ' + error.message, true);
+        console.error('数据加载错误:', error);
     }
+}
+
+async function loadData() {
+    // 保留为兼容性函数
+    loadDataFromFiles();
 }
 
 async function loadSampleData() {
@@ -175,13 +187,17 @@ function initializeUI() {
     }
 }
 
-function updateDataStatus() {
-    const status = `
-        ✅ 已加载数据：期权合约 ${data.optionInfo.length} 条，
-        期权价格 ${data.optionPrice.length} 条，
-        ETF价格 ${data.etfPrice.length} 条
-    `;
-    document.getElementById('dataStatus').textContent = status;
+function updateDataStatus(message = null, isError = false) {
+    const statusEl = document.getElementById('dataStatus');
+    
+    if (message) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? '#d32f2f' : '#1976d2';
+    } else {
+        const status = `✅ 已加载数据：期权合约 ${data.optionInfo.length} 条，期权价格 ${data.optionPrice.length} 条，ETF价格 ${data.etfPrice.length} 条`;
+        statusEl.textContent = status;
+        statusEl.style.color = '#1976d2';
+    }
 }
 
 // ==================== 图表模块 ====================
@@ -201,6 +217,19 @@ function updateETFChart() {
     const closes = etfData.map(d => parseFloat(d.close) || 0);
     const highs = etfData.map(d => parseFloat(d.high) || 0);
     const lows = etfData.map(d => parseFloat(d.low) || 0);
+    const volumes = etfData.map(d => parseInt(d.volume) || 0);
+    
+    // 构建标准OHLC格式 [open, close, low, high]
+    const ohlcData = opens.map((o, i) => [o, closes[i], lows[i], highs[i]]);
+    
+    // 计算移动平均线
+    const ma5 = calculateMA(closes, 5);
+    const ma10 = calculateMA(closes, 10);
+    const ma20 = calculateMA(closes, 20);
+    
+    // 归一化成交量用于显示
+    const maxVolume = Math.max(...volumes);
+    const normalizedVolumes = volumes.map(v => v / maxVolume * 100);
     
     const chartDom = document.getElementById('etfChart');
     if (!etfChart) {
@@ -208,34 +237,171 @@ function updateETFChart() {
     }
     
     const option = {
-        title: { text: `${etfCode} K线图`, left: 'center' },
+        title: { 
+            text: `${etfCode} 技术面分析`, 
+            left: 'center',
+            textStyle: {
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#333'
+            }
+        },
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'cross' }
+            axisPointer: { type: 'cross' },
+            borderColor: '#ddd',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            textStyle: { color: '#333' },
+            formatter: function(params) {
+                let res = `<div style="padding:8px;"><strong>${params[0]?.axisValue}</strong><br/>`;
+                params.forEach(param => {
+                    if (param.componentSubType === 'candlestick') {
+                        res += `K线：开${param.value[0].toFixed(4)} 高${param.value[3].toFixed(4)} 低${param.value[2].toFixed(4)} 收${param.value[1].toFixed(4)}<br/>`;
+                    } else {
+                        res += `<span style="color:${param.color}">●</span> ${param.name}：${typeof param.value === 'number' ? param.value.toFixed(4) : param.value}<br/>`;
+                    }
+                });
+                return res + '</div>';
+            }
         },
-        xAxis: {
-            type: 'category',
-            data: dates,
-            boundaryGap: false
-        },
-        yAxis: { type: 'value' },
+        backgroundColor: '#fafbfc',
+        grid: [
+            { left: 60, right: 20, top: 80, height: '65%' },
+            { left: 60, right: 20, top: '73%', height: '12%' }
+        ],
+        xAxis: [
+            {
+                type: 'category',
+                data: dates,
+                boundaryGap: true,
+                gridIndex: 0,
+                axisLine: { lineStyle: { color: '#ccc' } },
+                axisLabel: { color: '#666', fontSize: 10 },
+                splitLine: { show: false }
+            },
+            {
+                type: 'category',
+                data: dates,
+                gridIndex: 1,
+                boundaryGap: true,
+                axisLine: { lineStyle: { color: '#ccc' } },
+                axisLabel: { show: false }
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value',
+                gridIndex: 0,
+                scale: true,
+                axisLine: { show: false },
+                axisLabel: { color: '#666', fontSize: 10 },
+                splitLine: { lineStyle: { color: '#f0f0f0' } }
+            },
+            {
+                type: 'value',
+                gridIndex: 1,
+                scale: false,
+                axisLine: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            }
+        ],
         series: [
             {
-                name: '收盘价',
-                data: closes,
+                name: 'K线',
                 type: 'candlestick',
+                data: ohlcData,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
                 itemStyle: {
                     color: '#f23645',
                     color0: '#22ab94',
                     borderColor: '#f23645',
-                    borderColor0: '#22ab94'
+                    borderColor0: '#22ab94',
+                    borderWidth: 1
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: '#ff6b7a',
+                        color0: '#30d89f'
+                    }
+                }
+            },
+            {
+                name: 'MA5',
+                type: 'line',
+                data: ma5,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                smooth: true,
+                lineStyle: { color: '#ff7f00', width: 1.5 },
+                symbol: 'none',
+                itemStyle: { opacity: 0 }
+            },
+            {
+                name: 'MA10',
+                type: 'line',
+                data: ma10,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                smooth: true,
+                lineStyle: { color: '#00d4ff', width: 1.5 },
+                symbol: 'none',
+                itemStyle: { opacity: 0 }
+            },
+            {
+                name: 'MA20',
+                type: 'line',
+                data: ma20,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                smooth: true,
+                lineStyle: { color: '#8b5cf6', width: 1.5 },
+                symbol: 'none',
+                itemStyle: { opacity: 0 }
+            },
+            {
+                name: '成交量',
+                type: 'bar',
+                data: normalizedVolumes,
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                        { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                    ])
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(102, 126, 234, 0.8)' },
+                            { offset: 1, color: 'rgba(102, 126, 234, 0.3)' }
+                        ])
+                    }
                 }
             }
-        ],
-        grid: { left: 60, right: 20, bottom: 50, top: 60 }
+        ]
     };
     
     etfChart.setOption(option);
+}
+
+// 计算移动平均线
+function calculateMA(data, period) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+            result.push(null);
+        } else {
+            let sum = 0;
+            for (let j = 0; j < period; j++) {
+                sum += data[i - j];
+            }
+            result.push(sum / period);
+        }
+    }
+    return result;
 }
 
 function updateOptionTable() {
@@ -420,6 +586,21 @@ function selectOption(orderId) {
     
     data.selectedOption = { opt, prices };
     
+    // 更新已选期权信息显示
+    if (opt) {
+        const latestPrice = prices[prices.length - 1];
+        document.getElementById('selectedOptInfo').innerHTML = `
+            <p><strong>合约代码:</strong> ${opt.trading_code}</p>
+            <p><strong>期权类型:</strong> ${opt.option_type === 'C' ? '看涨(Call)' : '看跌(Put)'}</p>
+            <p><strong>行权价:</strong> ${opt.strike_price}</p>
+            <p><strong>当前价:</strong> ${latestPrice?.close?.toFixed(4) || '-'}</p>
+            <p><strong>持仓量:</strong> ${latestPrice?.position || 0}</p>
+            <p><strong>成交量:</strong> ${latestPrice?.volume || 0}</p>
+            <p><strong>到期日期:</strong> ${opt.maturity_date}</p>
+            <p><strong>合约乘数:</strong> ${opt.contract_multiplier}</p>
+        `;
+    }
+    
     // 更新期权详情
     updateOptionInfo();
     
@@ -496,7 +677,22 @@ function drawSelectedOptionChart() {
     
     const prices = data.selectedOption.prices;
     const dates = prices.map(p => p.date);
+    const opens = prices.map(p => parseFloat(p.open) || 0);
     const closes = prices.map(p => parseFloat(p.close) || 0);
+    const highs = prices.map(p => parseFloat(p.high) || 0);
+    const lows = prices.map(p => parseFloat(p.low) || 0);
+    const volumes = prices.map(p => parseInt(p.volume) || 0);
+    
+    // 构建OHLC格式 [open, close, low, high]
+    const ohlcData = opens.map((o, i) => [o, closes[i], lows[i], highs[i]]);
+    
+    // 计算移动平均线
+    const ma5 = calculateMA(closes, 5);
+    const ma10 = calculateMA(closes, 10);
+    
+    // 归一化成交量
+    const maxVolume = Math.max(...volumes);
+    const normalizedVolumes = volumes.map(v => (maxVolume > 0 ? v / maxVolume * 50 : 0));
     
     const chartDom = document.getElementById('selectedChart');
     if (!selectedChart) {
@@ -504,18 +700,122 @@ function drawSelectedOptionChart() {
     }
     
     const option = {
-        title: { text: `${data.selectedOption.opt.symbol}`, left: 'center' },
-        tooltip: { trigger: 'axis' },
-        xAxis: { type: 'category', data: dates, boundaryGap: false },
-        yAxis: { type: 'value' },
-        series: [{
-            data: closes,
-            type: 'line',
-            smooth: true,
-            itemStyle: { color: '#667eea' },
-            areaStyle: { color: 'rgba(102, 126, 234, 0.1)' }
-        }],
-        grid: { left: 60, right: 20, bottom: 50, top: 60 }
+        title: { 
+            text: `${data.selectedOption.opt.symbol} - 期权走势`, 
+            left: 'center',
+            textStyle: { fontSize: 14, fontWeight: 600, color: '#333' }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            borderColor: '#ddd',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            textStyle: { color: '#333' },
+            formatter: function(params) {
+                let res = `<div style="padding:8px;"><strong>${params[0]?.axisValue}</strong><br/>`;
+                params.forEach(param => {
+                    if (param.componentSubType === 'candlestick') {
+                        res += `K线：开${param.value[0].toFixed(4)} 收${param.value[1].toFixed(4)} 高${param.value[3].toFixed(4)} 低${param.value[2].toFixed(4)}<br/>`;
+                    } else {
+                        res += `<span style="color:${param.color}">●</span> ${param.name}：${typeof param.value === 'number' ? param.value.toFixed(4) : param.value}<br/>`;
+                    }
+                });
+                return res + '</div>';
+            }
+        },
+        backgroundColor: '#fafbfc',
+        grid: [
+            { left: 60, right: 20, top: 80, height: '75%' },
+            { left: 60, right: 20, top: '80%', height: '10%' }
+        ],
+        xAxis: [
+            {
+                type: 'category',
+                data: dates,
+                gridIndex: 0,
+                boundaryGap: true,
+                axisLine: { lineStyle: { color: '#ccc' } },
+                axisLabel: { color: '#666', fontSize: 10 },
+                splitLine: { show: false }
+            },
+            {
+                type: 'category',
+                data: dates,
+                gridIndex: 1,
+                boundaryGap: true,
+                axisLine: { show: false },
+                axisLabel: { show: false }
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value',
+                gridIndex: 0,
+                scale: true,
+                axisLine: { show: false },
+                axisLabel: { color: '#666', fontSize: 10 },
+                splitLine: { lineStyle: { color: '#f0f0f0' } }
+            },
+            {
+                type: 'value',
+                gridIndex: 1,
+                scale: false,
+                axisLine: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            }
+        ],
+        series: [
+            {
+                name: 'K线',
+                type: 'candlestick',
+                data: ohlcData,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                itemStyle: {
+                    color: '#f23645',
+                    color0: '#22ab94',
+                    borderColor: '#f23645',
+                    borderColor0: '#22ab94',
+                    borderWidth: 1
+                }
+            },
+            {
+                name: 'MA5',
+                type: 'line',
+                data: ma5,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                smooth: true,
+                lineStyle: { color: '#ff7f00', width: 1.5 },
+                symbol: 'none',
+                itemStyle: { opacity: 0 }
+            },
+            {
+                name: 'MA10',
+                type: 'line',
+                data: ma10,
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                smooth: true,
+                lineStyle: { color: '#00d4ff', width: 1.5 },
+                symbol: 'none',
+                itemStyle: { opacity: 0 }
+            },
+            {
+                name: '成交量',
+                type: 'bar',
+                data: normalizedVolumes,
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(102, 126, 234, 0.6)' },
+                        { offset: 1, color: 'rgba(102, 126, 234, 0.2)' }
+                    ])
+                }
+            }
+        ]
     };
     
     selectedChart.setOption(option);
@@ -565,6 +865,86 @@ function drawPortfolioChart() {
     };
     
     portfolioChart.setOption(option);
+}
+
+function updatePortfolioGreeks() {
+    if (data.portfolio.length === 0) {
+        document.getElementById('portfolioDelta').textContent = '0.000';
+        document.getElementById('portfolioGamma').textContent = '0.000';
+        document.getElementById('portfolioVega').textContent = '0.000';
+        document.getElementById('portfolioTheta').textContent = '0.000';
+        document.getElementById('portfolioRho').textContent = '0.000';
+        document.getElementById('portfolioCost').textContent = '0.00';
+        return;
+    }
+    
+    const etfPrice = getLatestETFPrice();
+    const r = CONFIG.riskFreeRate;
+    
+    let totalDelta = 0, totalGamma = 0, totalVega = 0, totalTheta = 0, totalRho = 0, totalCost = 0;
+    
+    data.portfolio.forEach(item => {
+        const opt = item.opt;
+        const latestPrice = getLatestPrice(opt.order_book_id);
+        
+        if (latestPrice) {
+            const daysToExp = Math.max(0, (new Date(opt.maturity_date) - new Date()) / (1000 * 60 * 60 * 24));
+            const T = daysToExp / 365;
+            const iv = calculateIV(latestPrice.close, opt.strike_price, etfPrice);
+            
+            const delta = calculateDelta(etfPrice, opt.strike_price, T, iv, r, opt.option_type);
+            const gamma = calculateGamma(etfPrice, opt.strike_price, T, iv, r);
+            const vega = calculateVega(etfPrice, opt.strike_price, T, iv, r);
+            const theta = calculateTheta(etfPrice, opt.strike_price, T, iv, r, opt.option_type);
+            const rho = calculateRho(etfPrice, opt.strike_price, T, iv, r, opt.option_type);
+            
+            const multiplier = item.direction === 'long' ? 1 : -1;
+            const quantity = item.quantity;
+            
+            totalDelta += delta * multiplier * quantity * opt.contract_multiplier;
+            totalGamma += gamma * multiplier * quantity * opt.contract_multiplier;
+            totalVega += vega * multiplier * quantity;
+            totalTheta += theta * multiplier * quantity * opt.contract_multiplier;
+            totalRho += rho * multiplier * quantity;
+            totalCost += latestPrice.close * multiplier * quantity * opt.contract_multiplier;
+        }
+    });
+    
+    document.getElementById('portfolioDelta').textContent = totalDelta.toFixed(3);
+    document.getElementById('portfolioGamma').textContent = totalGamma.toFixed(5);
+    document.getElementById('portfolioVega').textContent = totalVega.toFixed(3);
+    document.getElementById('portfolioTheta').textContent = totalTheta.toFixed(5);
+    document.getElementById('portfolioRho').textContent = totalRho.toFixed(3);
+    document.getElementById('portfolioCost').textContent = totalCost.toFixed(2);
+    
+    // 更新风险指标表
+    updatePortfolioRiskTable(totalDelta, totalGamma, totalVega, totalTheta);
+}
+
+function updatePortfolioRiskTable(delta, gamma, vega, theta) {
+    const tbody = document.getElementById('portfolioRiskTable');
+    tbody.innerHTML = `
+        <tr>
+            <td>Delta合计</td>
+            <td>${delta.toFixed(3)}</td>
+            <td>${Math.abs(delta) < 0.3 ? '💚 低风险' : Math.abs(delta) < 0.7 ? '🟡 中等风险' : '🔴 高风险'}</td>
+        </tr>
+        <tr>
+            <td>Gamma合计</td>
+            <td>${gamma.toFixed(5)}</td>
+            <td>${Math.abs(gamma) < 0.001 ? '💚 稳定' : '🟡 波动'}</td>
+        </tr>
+        <tr>
+            <td>Vega合计</td>
+            <td>${vega.toFixed(3)}</td>
+            <td>${Math.abs(vega) < 50 ? '💚 波动率敏感性低' : '🟡 波动率敏感性高'}</td>
+        </tr>
+        <tr>
+            <td>Theta合计</td>
+            <td>${theta.toFixed(5)}</td>
+            <td>${theta > 0 ? '💚 时间获利' : theta < -0.001 ? '🔴 时间亏损' : '💚 中性'}</td>
+        </tr>
+    `;
 }
 
 // ==================== 选项卡切换 ====================
@@ -688,6 +1068,9 @@ function updatePortfolioTable() {
         `;
         tbody.appendChild(row);
     });
+    
+    // 更新Greeks合计
+    updatePortfolioGreeks();
 }
 
 function removeFromPortfolio(idx) {
@@ -848,6 +1231,27 @@ function getLatestETFPrice() {
         return parseFloat(etfData[0].close) || 0;
     }
     return 1;
+}
+
+// 误差函数定义
+function erf(x) {
+    const a1 = 0.254829592;
+    const a2 = -0.284496736;
+    const a3 = 1.421413741;
+    const a4 = -1.453152027;
+    const a5 = 1.061405429;
+    const p = 0.3275911;
+    
+    const sign = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    
+    const t = 1.0 / (1.0 + p * x);
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const t4 = t3 * t;
+    const t5 = t4 * t;
+    
+    return sign * (1.0 - (((((a5 * t5 + a4 * t4) + a3 * t3) + a2 * t2) + a1 * t) * t) * Math.exp(-x * x));
 }
 
 // ==================== 模态框管理 ====================

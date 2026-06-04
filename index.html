@@ -365,14 +365,27 @@
             <div class="panel-header">📁 数据加载</div>
             <div class="panel-content">
                 <div class="control-group">
-                    <label>上传CSV数据文件（期权信息、期权价格、ETF价格）</label>
-                    <input type="file" id="fileInput" multiple accept=".csv" style="padding: 10px; cursor: pointer;">
+                    <label>上传CSV数据文件</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div>
+                            <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">期权合约信息</label>
+                            <input type="file" id="optionInfoFile" accept=".csv" style="padding: 8px; cursor: pointer; font-size: 11px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">期权价格数据</label>
+                            <input type="file" id="optionPriceFile" accept=".csv" style="padding: 8px; cursor: pointer; font-size: 11px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">ETF价格数据</label>
+                            <input type="file" id="etfPriceFile" accept=".csv" style="padding: 8px; cursor: pointer; font-size: 11px;">
+                        </div>
+                    </div>
                 </div>
                 <div class="button-group">
-                    <button class="btn btn-primary" onclick="loadData()">📂 加载数据</button>
+                    <button class="btn btn-primary" onclick="loadDataFromFiles()">📂 加载数据文件</button>
                     <button class="btn btn-secondary" onclick="loadSampleData()">📋 使用示例数据</button>
                 </div>
-                <div id="dataStatus" style="margin-top: 10px; font-size: 12px; color: #999;"></div>
+                <div id="dataStatus" style="margin-top: 10px; font-size: 12px; color: #999; padding: 10px; background: #f8f9fa; border-radius: 4px;">准备就绪</div>
             </div>
         </div>
         
@@ -424,13 +437,19 @@
                 <div class="panel-header">📊 期权详情与损益分析</div>
                 <div class="panel-content">
                     <div class="row">
-                        <div>
-                            <div class="info-grid" id="optionInfo" style="grid-template-columns: repeat(6, 1fr);"></div>
+                        <div style="flex: 1;">
+                            <div class="info-grid" id="optionInfo" style="grid-template-columns: repeat(6, 1fr); margin-bottom: 20px;"></div>
                             <div id="selectedChart" class="chart-container"></div>
                         </div>
-                        <div>
-                            <h3 style="margin-bottom: 15px; font-size: 14px; font-weight: 600;">期权组合构建</h3>
-                            <div class="table-scroll">
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                                <h3 style="margin-bottom: 15px; font-size: 13px; font-weight: 600; color: #333;">📋 已选期权信息</h3>
+                                <div id="selectedOptInfo" style="font-size: 12px; color: #666; line-height: 1.8;">
+                                    <p>未选择期权</p>
+                                </div>
+                            </div>
+                            <h3 style="margin-bottom: 15px; font-size: 13px; font-weight: 600; color: #333;">➕ 构建期权组合</h3>
+                            <div class="table-scroll" style="flex: 1; overflow-y: auto; margin-bottom: 15px;">
                                 <table class="table">
                                     <thead>
                                         <tr>
@@ -443,17 +462,75 @@
                                     <tbody id="portfolioTable"></tbody>
                                 </table>
                             </div>
-                            <div class="button-group" style="margin-top: 20px;">
-                                <button class="btn btn-primary" onclick="addToPortfolio()">➕ 添加到组合</button>
-                                <button class="btn btn-danger" onclick="clearPortfolio()">🗑️ 清空组合</button>
+                            <div class="button-group" style="margin-bottom: 15px;">
+                                <button class="btn btn-primary" onclick="addToPortfolio()" style="flex: 1;">➕ 添加到组合</button>
+                                <button class="btn btn-danger" onclick="clearPortfolio()" style="flex: 1;">🗑️ 清空组合</button>
                             </div>
-                            <div id="portfolioChart" class="chart-container"></div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- 价格预测 -->
+            <!-- 损益图分析 -->
+            <div class="panel full-width">
+                <div class="panel-header">📉 期权组合损益图</div>
+                <div class="panel-content">
+                    <div id="portfolioChart" class="chart-container" style="min-height: 300px;"></div>
+                </div>
+            </div>
+            
+            <!-- 组合风险指标 -->
+            <div class="panel full-width">
+                <div class="panel-header">⚠️ 期权组合风险指标</div>
+                <div class="panel-content">
+                    <div class="row">
+                        <div>
+                            <h4 style="margin-bottom: 15px; font-size: 13px; color: #333; font-weight: 600;">📊 Greeks合计</h4>
+                            <div class="info-grid" id="portfolioGreeks" style="grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                                <div class="info-card">
+                                    <label>Delta合计</label>
+                                    <div class="value" id="portfolioDelta">0.000</div>
+                                </div>
+                                <div class="info-card">
+                                    <label>Gamma合计</label>
+                                    <div class="value" id="portfolioGamma">0.000</div>
+                                </div>
+                                <div class="info-card">
+                                    <label>Vega合计</label>
+                                    <div class="value" id="portfolioVega">0.000</div>
+                                </div>
+                                <div class="info-card">
+                                    <label>Theta合计</label>
+                                    <div class="value" id="portfolioTheta">0.000</div>
+                                </div>
+                                <div class="info-card">
+                                    <label>Rho合计</label>
+                                    <div class="value" id="portfolioRho">0.000</div>
+                                </div>
+                                <div class="info-card">
+                                    <label>总投入成本</label>
+                                    <div class="value" id="portfolioCost">0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 15px; font-size: 13px; color: #333; font-weight: 600;">📈 风险收益统计</h4>
+                            <div class="table-scroll">
+                                <table class="table" style="font-size: 11px;">
+                                    <thead>
+                                        <tr>
+                                            <th>指标</th>
+                                            <th>数值</th>
+                                            <th>评价</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="portfolioRiskTable"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="panel full-width">
                 <div class="panel-header">🔮 股票价格预测（对数正态分布）</div>
                 <div class="panel-content">
