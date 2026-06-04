@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速开始 - 期权分析工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        
+        .step h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .step p {
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .step code {
+            background: #e8eaf6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            font-size: 13px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .features {
+            background: #e8eaf6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .features h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-item::before {
+            content: "✓";
+            color: #667eea;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .feature-item span {
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .file-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .file-item {
+            padding: 5px 0;
+        }
+        
+        .file-item::before {
+            content: "📄 ";
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #155724;
+        }
+        
+        @media (max-width: 600px) {
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 期权分析工具</h1>
+        <p class="subtitle">完整的期权行情分析、组合构建和风险评估平台</p>
+        
+        <div class="features">
+            <h3>🎯 主要功能</h3>
+            <div class="feature-list">
+                <div class="feature-item"><span>ETF K线图表</span></div>
+                <div class="feature-item"><span>T型报价表（4种模式）</span></div>
+                <div class="feature-item"><span>期权详情分析</span></div>
+                <div class="feature-item"><span>期权组合构建</span></div>
+                <div class="feature-item"><span>损益图（P&L）</span></div>
+                <div class="feature-item"><span>Greeks风险指标</span></div>
+                <div class="feature-item"><span>价格预测分析</span></div>
+                <div class="feature-item"><span>CSV数据导入</span></div>
+            </div>
+        </div>
+        
+        <div class="step">
+            <h2>第一步：准备工作</h2>
+            <p>确保工作目录中包含以下文件：</p>
+            <div class="file-list">
+                <div class="file-item">index.html - 主应用界面</div>
+                <div class="file-item">app.js - 应用逻辑</div>
+                <div class="file-item">option_info.csv - 期权合约信息</div>
+                <div class="file-item">option_price.csv - 期权价格数据</div>
+                <div class="file-item">etf_price.csv - ETF价格数据</div>
+            </div>
+        </div>
+        
+        <div class="step">
+            <h2>第二步：启动应用</h2>
+            <p><strong>方法1：直接打开</strong></p>
+            <p>双击 <code>index.html</code> 文件，在浏览器中打开。</p>
+            
+            <p style="margin-top: 15px;"><strong>方法2：启动本地服务器（推荐）</strong></p>
+            <p>如果在Windows上，进入文件夹后执行：</p>
+            <div class="file-list">
+python -m http.server 8000
+            </div>
+            <p>然后在浏览器中访问：<code>http://localhost:8000</code></p>
+        </div>
+        
+        <div class="step">
+            <h2>第三步：加载数据</h2>
+            <p>应用启动后，选择一种方式加载数据：</p>
+            <p>• <strong>使用示例数据</strong>：点击"📋 使用示例数据"按钮，自动生成演示数据</p>
+            <p>• <strong>上传CSV文件</strong>：选择三个数据文件，点击"📂 加载数据"</p>
+        </div>
+        
+        <div class="step">
+            <h2>第四步：开始分析</h2>
+            <p>✅ 查看ETF K线图表</p>
+            <p>✅ 浏览T型报价表（切换月份和显示模式）</p>
+            <p>✅ 选择期权查看详情和K线图</p>
+            <p>✅ 构建期权组合和分析损益</p>
+            <p>✅ 查看价格预测和概率分布</p>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ 注意事项：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>请使用现代浏览器（Chrome、Firefox、Safari、Edge）</li>
+                <li>确保浏览器启用了JavaScript</li>
+                <li>本工具仅供学习和研究使用，不构成投资建议</li>
+            </ul>
+        </div>
+        
+        <div class="success">
+            <strong>✅ 系统要求：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>现代浏览器（Firefox、Chrome、Safari、Edge）</li>
+                <li>JavaScript 支持（ES6+）</li>
+                <li>本地存储功能</li>
+            </ul>
+        </div>
+        
+        <div class="button-group">
+            <a href="index.html" class="btn btn-primary">🚀 打开应用</a>
+            <a href="README.md" class="btn btn-secondary">📖 查看文档</a>
+        </div>
+    </div>
+</body>
+</html>
